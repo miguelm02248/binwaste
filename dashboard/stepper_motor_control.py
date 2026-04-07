@@ -23,7 +23,7 @@ current_step_pos = 0
 def move_to_angle(target_steps, speed=0.001):
     global current_step_pos
     
-    # Calculate how many steps we need to move from WHERE WE ARE NOW
+    # Calculate how many steps we need to move from beginning
     steps_to_move = target_steps - current_step_pos
     
     if steps_to_move == 0:
@@ -42,7 +42,7 @@ def move_to_angle(target_steps, speed=0.001):
     
     current_step_pos = target_steps
 
-def run_actuator(seconds=33):
+def run_actuator(seconds=5):
     print(">>> Actuating: Extending...")
     actuator_extend.ChangeDutyCycle(100)
     time.sleep(seconds)
