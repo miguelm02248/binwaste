@@ -1,56 +1,94 @@
 import RPi.GPIO as GPIO
 import time
-# The numbers are the pun numbers of the GPIO pins on the pi
-DIR = 17 #direction, 0 = CCW, 1 = CW
-CLK = 27 #pulses when set to 0 + moves 1 step
-ENA = 22 #0 = off, 1 = on
-SOL = 18 #controls solenoid, 0 = down, 1 = up? idk it might be the opposite
-delay = 0.005 # the clock pulses + time between them has to be this many seconds minimum
-linear_actuator_delay = 3 #idk
-MS1 = 5
-MS2 = 6
+import RPi.GPIO as GPIO
+import time
 
-trash = 40 # of steps to take
-recycling = 0
-compost = 40
-num_and_dir_steps = {"waste": (trash, 1), "recycle":(recycling, 1), "organic": (compost, 0)}
+# --- PIN CONFIGURATION ---
+PUL, DIR = 17, 27
+RPWM, LPWM, R_EN, L_EN = 18, 19, 23, 24
 
-def initialize_gpio():
-    GPIO.setmode(GPIO.BCM) #as opposed to GPIO.BCM, which uses a different pin numbering scheme
-    for pin in [CLK, DIR, ENA, SOL,  MS1, MS2]:
-      GPIO.setup(pin, GPIO.OUT)
-    GPIO.output(MS1, 1) #sets step size to maximum
-    GPIO.output(MS2, 1)
+# --- SETUP ---
+GPIO.setmode(GPIO.BCM)
+GPIO.setup([PUL, DIR, RPWM, LPWM, R_EN, L_EN], GPIO.OUT)
+GPIO.output([R_EN, L_EN], GPIO.HIGH)
 
-def move(steps, direction):
-    GPIO.output(ENA, 1) # turn it on
-    GPIO.output(DIR, direction) # set direction
-    for x in range(steps):
-        GPIO.output(CLK, 1)
-        time.sleep(delay)
-        GPIO.output(CLK, 0)
-        time.sleep(delay)
-    GPIO.output(ENA, 0)
+actuator_extend = GPIO.PWM(RPWM, 1000)
+actuator_retract = GPIO.PWM(LPWM, 1000)
+actuator_extend.start(0)
+actuator_retract.start(0)
 
-def move_solenoid():
-    GPIO.output(SOL, 1)
-    time.sleep(linear_actuator_delay)
-    GPIO.output(SOL, 0)
+# Track the "Odometer"
+current_step_pos = 0
 
-def main():
-    initialize_gpio()
-    print("initialize gpio")
-    while True:
-        try:
-            category = input() #replace this with function for receiving actual classification, should also
-                          #wait on this line
-            move(*num_and_dir_steps[category])
-            move_solenoid()
-            #something with the linear actuator
-            time.sleep(1) #placeholder, we need a delay for motor to change direction probably
-            move(num_and_dir_steps[category][0], int(not num_and_dir_steps[category][1]))
-        except KeyboardInterrupt:
-            GPIO.cleanup()
-            exit()
-if __name__ == "__main__":
-    main()
+def move_to_angle(target_steps, speed=0.001):
+    global current_step_pos
+    
+    # Calculate how many steps we need to move from WHERE WE ARE NOW
+    steps_to_move = target_steps - current_step_pos
+    
+    if steps_to_move == 0:
+        return
+
+    # Determine direction
+    direction = 1 if steps_to_move > 0 else 0
+    GPIO.output(DIR, direction)
+    
+    print(f"Moving to target... ({'CW' if direction==1 else 'CCW'})")
+    for _ in range(abs(steps_to_move)):
+        GPIO.output(PUL, GPIO.HIGH)
+        time.sleep(speed)
+        GPIO.output(PUL, GPIO.LOW)
+        time.sleep(speed)
+    
+    current_step_pos = target_steps
+
+def run_actuator(seconds=33):
+    print(">>> Actuating: Extending...")
+    actuator_extend.ChangeDutyCycle(100)
+    time.sleep(seconds)
+    actuator_extend.ChangeDutyCycle(0)
+    
+    time.sleep(2)
+    
+    print(">>> Actuating: Retracting...")
+    actuator_retract.ChangeDutyCycle(100)
+    time.sleep(seconds)
+    actuator_retract.ChangeDutyCycle(0)
+
+# --- MAIN SORTING SEQUENCE ---
+try:
+    # Definitions (Assuming 400 steps/rev)
+    TRASH = 0
+    COMPOST = 100
+    RECYCLE = 200
+
+    # 1. TRASH PHASE
+    print("\n[STEP 1: TRASH]")
+    move_to_angle(TRASH)
+    run_actuator()
+
+    # 2. COMPOST PHASE
+    print("\n[STEP 2: COMPOST]")
+    move_to_angle(COMPOST)
+    time.sleep(1)
+    run_actuator()
+
+    # 3. RECYCLE PHASE
+    print("\n[STEP 3: RECYCLE]")
+    move_to_angle(RECYCLE)
+    time.sleep(1)
+    run_actuator()
+
+    # 4. HOME PHASE
+    print("\n[FINISHING: Returning to TRASH position]")
+    time.sleep(1)
+    move_to_angle(TRASH)
+
+finally:
+    print("\nSystem Halted. Cleaning up GPIO...")
+    actuator_extend.stop()
+    actuator_retract.stop()
+    GPIO.cleanup()
+    print("Done.")
+
+
