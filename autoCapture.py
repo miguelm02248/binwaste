@@ -269,7 +269,7 @@ def motion_detection_loop():
         cv2.destroyAllWindows()
 
 def main():
-    print("🚀 Starting SmartSort Motion-Based Auto-Capture")
+    print("🚀 Starting Waste Wizard Motion-Based Auto-Capture")
     print("=" * 60)
     print("📋 Features:")
     print("  • Motion detection using background subtraction")
