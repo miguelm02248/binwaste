@@ -143,7 +143,7 @@ def custom_detection_sink(result, video_frame):
         return
 
 def main():
-    print("🚀 Starting SmartSort PiCamera Classification")
+    print("🚀 Starting Waste Wizard PiCamera Classification")
     print("=" * 60)
     print("📋 Features:")
     print("  • PiCamera integration")
