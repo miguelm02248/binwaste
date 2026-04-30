@@ -530,7 +530,7 @@ def api_manual_override():
 @socketio.on('connect')
 def handle_connect():
     print('Client connected')
-    emit('status', {'message': 'Connected to SmartSort system'})
+    emit('status', {'message': 'Connected to BinWaste system'})
 
 @socketio.on('disconnect')
 def handle_disconnect():
@@ -553,7 +553,7 @@ if __name__ == '__main__':
     # Create detected_images directory if it doesn't exist
     os.makedirs(DETECTED_IMAGES_PATH, exist_ok=True)
     
-    print("🚀 Starting SmartSort Dashboard")
+    print("🚀 Starting BinWaste Dashboard")
     print("=" * 50)
     print("📊 Dashboard Features:")
     print("  • View all captured images")
