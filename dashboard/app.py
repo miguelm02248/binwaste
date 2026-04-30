@@ -19,6 +19,16 @@ DETECTED_IMAGES_PATH = "detected_images"
 latest_classification = None
 classification_lock = threading.Lock()
 
+scanning_active = False 
+
+@app.route('/toggle_scan', methods=['POST'])
+def toggle_scan():
+    global scanning_active
+    scanning_active = not scanning_active
+    status = "running" if scanning_active else "stopped"
+    print(f"Scanner is now: {status}")
+    return {"status": status}
+
 def get_classification_data():
     """
     Get all classification data from the detected images directory
